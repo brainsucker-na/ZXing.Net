@@ -84,8 +84,12 @@ namespace ZXing.Multi
             {
                 return;
             }
+          var safe = hints != null && hints.ContainsKey(DecodeHintType.SAFE_MODE);
 
-            Result result = _delegate.decode(image, hints);
+          Result result;
+          try
+          {
+              result = _delegate.decode(image, hints);
             if (result == null)
                 return;
 
@@ -101,7 +105,13 @@ namespace ZXing.Multi
             }
             if (!alreadyFound)
             {
-                results.Add(translateResultPoints(result, xOffset, yOffset));
+                  results.Add(translateResultPoints(result, xOffset, yOffset, safe));
+              }
+          }
+          catch
+          {
+              if (!safe) throw;
+              return;
             }
 
             ResultPoint[] resultPoints = result.ResultPoints;
@@ -164,8 +174,9 @@ namespace ZXing.Multi
             }
         }
 
-        private static Result translateResultPoints(Result result, int xOffset, int yOffset)
+      private static Result translateResultPoints(Result result, int xOffset, int yOffset, bool safe)
         {
+          int t = 0;
             var oldResultPoints = result.ResultPoints;
             var newResultPoints = new ResultPoint[oldResultPoints.Length];
             for (int i = 0; i < oldResultPoints.Length; i++)
@@ -173,9 +184,16 @@ namespace ZXing.Multi
                 var oldPoint = oldResultPoints[i];
                 if (oldPoint != null)
                 {
-                    newResultPoints[i] = new ResultPoint(oldPoint.X + xOffset, oldPoint.Y + yOffset);
+                newResultPoints[safe?t++:i] = new ResultPoint(oldPoint.X + xOffset, oldPoint.Y + yOffset);
                 }
             }
+          // NULL result points will upset not only us, at TopSoft, but other zXing modules as well
+         if (safe && t < oldResultPoints.Length)
+          {
+              var res = new ResultPoint[t];
+              System.Array.Copy(newResultPoints, res, t);
+              newResultPoints = res;
+          }
             var newResult = new Result(result.Text, result.RawBytes, result.NumBits, newResultPoints, result.BarcodeFormat);
             newResult.putAllMetadata(result.ResultMetadata);
             return newResult;

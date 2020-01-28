@@ -120,6 +120,11 @@ namespace ZXing
         /// and a UPC or EAN barcode is found but an extension is not, then no result will be returned
         /// at all.
         /// </summary>
-        ALLOWED_EAN_EXTENSIONS
+      ALLOWED_EAN_EXTENSIONS,
+
+       /// <summary>
+       ///  We don't want exceptions or decoding terminations, we just need as much barcodes as possible
+       /// </summary>
+       SAFE_MODE,
     }
 }
